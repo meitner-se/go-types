@@ -1,4 +1,4 @@
-module github.com/meitner-se/types
+module github.com/meitner-se/go-types
 
 go 1.23.3
 
