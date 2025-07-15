@@ -1,0 +1,32 @@
+# This workflows runs on every push, it makes sure that the go.mod and go.sum files are up to date and verifies the sum.
+#
+# It compares the go.mod and go.sum files before and after the run, 
+# the workflow will fail if there is any diff and you have to handle it manually in another commit before merging the PR.
+name: Go Modules
+
+on:
+  push:
+    paths:
+      - '**'
+
+jobs:
+  go-mod-tidy:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Go Mod Tidy
+        run: go mod tidy
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: |
+            go.sum
+
+      - name: Compare go.mod and go.sum
+        run: |
+          git diff --exit-code go.mod go.sum
