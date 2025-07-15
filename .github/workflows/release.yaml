@@ -34,7 +34,7 @@ jobs:
           fi
 
           # Validate the latest version tag format
-          if [[ ! "$latest_tag" =~ ^.+@v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "$latest_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid latest version tag format: $latest_tag should have suffix @vX.Y.Z"
             exit 1
           fi
