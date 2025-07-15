@@ -1,0 +1,30 @@
+name: Test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/test.yaml' # this file
+      - '*.go'
+
+permissions:
+  contents: read
+  pull-requests: write
+  repository-projects: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: |
+            go.sum
+
+      - name: Run tests
+        run: go test -v ./...
