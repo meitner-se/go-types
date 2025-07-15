@@ -1,6 +1,6 @@
 module github.com/meitner-se/go-types
 
-go 1.23.3
+go 1.23.2
 
 require (
 	github.com/aarondl/null/v8 v8.1.3
