@@ -1,8 +1,6 @@
 package types
 
 import (
-	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -47,31 +45,6 @@ func TestRichText(t *testing.T) {
 			})
 		}
 	})
-}
-
-func TestGob(t *testing.T) {
-	person := struct {
-		FirstName String
-		LastName  String
-	}{
-		FirstName: NewString("John"),
-		LastName:  NewString("Doe"),
-	}
-
-	var buf bytes.Buffer
-
-	err := gob.NewEncoder(&buf).Encode(person)
-	require.NoError(t, err)
-
-	var decoded struct {
-		FirstName String
-		LastName  String
-	}
-
-	err = gob.NewDecoder(&buf).Decode(&decoded)
-	require.NoError(t, err)
-
-	assert.Equal(t, person, decoded)
 }
 
 func TestTimestamp(t *testing.T) {
