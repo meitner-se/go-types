@@ -1,19 +1,48 @@
-name: Release
+# Release Tag creates a new release tag for the latest commit in main.
+# It will only increment the patch version for now.
+name: Release Tag
 
 on:
   push:
     branches:
-      - main
-
-permissions:
-  contents: write
-  pull-requests: write
+      - feature/add-release-workflow
 
 jobs:
-  release-please:
+  release-tag:
     runs-on: ubuntu-24.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_DEBUG: api
     steps:
-      - uses: googleapis/release-please-action@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          release-type: simple
+          fetch-depth: 0 # Fetch all history
+          filter: tree:0  # "Treeless clones" filter
+
+      - name: Create Release Tag
+        run: |
+          latest_tag=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | head -n 1)
+
+          if [ -z "$latest_tag" ]; then
+            echo "No tags found - creating v1.0.0 release"
+            gh release create "v1.0.0" --latest=true --target=${{ github.sha }}
+            exit 0
+          fi
+
+          # Validate the latest version tag format
+          if [[ ! "$latest_tag" =~ ^.+@v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid latest version tag format: $latest_tag should have suffix @vX.Y.Z"
+            exit 1
+          fi
+
+          echo "Latest tag is $latest_tag"
+
+          IFS='.' read -r major minor patch <<< "${latest_tag#v}"
+
+          patch=$((patch + 1))
+
+          new_tag="v${major}.${minor}.${patch}"
+
+          echo "New tag is $new_tag"
+          gh release create "$new_tag" --latest=true --target=${{ github.sha }}
