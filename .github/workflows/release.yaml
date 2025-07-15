@@ -1,11 +1,12 @@
-# Release Tag creates a new release tag for the latest commit in main.
+# Release Tag creates a new release tag for each commit in main.
+#
 # It will only increment the patch version for now.
 name: Release Tag
 
 on:
   push:
     branches:
-      - feature/add-release-workflow
+      - main
 
 permissions:
   contents: write
