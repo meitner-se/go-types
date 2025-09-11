@@ -2124,6 +2124,10 @@ func TimestampFromString(str string) (Timestamp, error) {
 		"2006-01-02T15:04",
 		"2006-01-02 15:04",
 		"2006-01-02",
+		"1/2/06 15:04",
+		"1/2/06 15:04:05",
+		"1/2/2006 15:04",
+		"1/2/2006 15:04:05",
 	}
 
 	for _, format := range formats {
