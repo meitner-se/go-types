@@ -94,6 +94,9 @@ func TestTimestamp(t *testing.T) {
 			{input: "2023-12-25 15:04", expected: "2023-12-25T15:04:00Z"},
 			{input: "2023-12-25", expected: "2023-12-25T00:00:00Z"},
 			{input: "2023-12-xx", err: errors.New("parsing time \"2023-12-xx\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"xx\" as \"02\"")},
+			{input: "1/20/25 11:23", expected: "2025-01-20T11:23:00Z"},
+			{input: "1/20/25 11:23:02", expected: "2025-01-20T11:23:02Z"},
+			{input: "01/20/2025 11:23:02", expected: "2025-01-20T11:23:02Z"},
 		}
 
 		for _, tc := range tt {
