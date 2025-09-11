@@ -2114,6 +2114,29 @@ func TimestampFromString(str string) (Timestamp, error) {
 		return NewTimestampFromPtr(nil), nil
 	}
 
+	formats := []string{
+		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02 15:04:05Z07:00",
+		"2006-01-02T15:04:05Z",
+		"2006-01-02 15:04:05Z",
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04",
+		"2006-01-02 15:04",
+		"2006-01-02",
+	}
+
+	for _, format := range formats {
+		underlying, err := time.Parse(format, strings.TrimSpace(str))
+		if err == nil {
+			return Timestamp{
+				underlying: underlying,
+				isDefined:  true,
+				isNil:      false,
+			}, nil
+		}
+	}
+
 	underlying, err := time.Parse("2006-01-02T15:04:05Z07:00", strings.TrimSpace(str))
 	if err != nil {
 		return Timestamp{}, err

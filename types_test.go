@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/friendsofgo/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -78,5 +79,37 @@ func TestTimestamp(t *testing.T) {
 		assert.Equal(t, 59, timestamp.Minute())
 		assert.Equal(t, 59, timestamp.Second())
 		assert.Equal(t, 0, timestamp.Nanosecond())
+	})
+
+	t.Run("TimestampFromString", func(t *testing.T) {
+		tt := []struct {
+			input, expected string
+			err             error
+		}{
+			{input: "2023-12-25T15:04:05Z", expected: "2023-12-25T15:04:05Z"},
+			{input: "2023-12-25 15:04:05Z", expected: "2023-12-25T15:04:05Z"},
+			{input: "2023-12-25T15:04:05", expected: "2023-12-25T15:04:05Z"},
+			{input: "2023-12-25 15:04:05", expected: "2023-12-25T15:04:05Z"},
+			{input: "2023-12-25T15:04", expected: "2023-12-25T15:04:00Z"},
+			{input: "2023-12-25 15:04", expected: "2023-12-25T15:04:00Z"},
+			{input: "2023-12-25", expected: "2023-12-25T00:00:00Z"},
+			{input: "2023-12-xx", err: errors.New("parsing time \"2023-12-xx\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"xx\" as \"02\"")},
+		}
+
+		for _, tc := range tt {
+			t.Run(tc.input, func(t *testing.T) {
+				timestamp, err := TimestampFromString(tc.input)
+
+				if tc.err != nil {
+					require.Error(t, err)
+					assert.Equal(t, tc.err.Error(), err.Error())
+					return
+				}
+
+				require.NoError(t, err)
+
+				assert.Equal(t, tc.expected, timestamp.String())
+			})
+		}
 	})
 }
