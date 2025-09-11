@@ -87,8 +87,11 @@ func TestTimestamp(t *testing.T) {
 			err             error
 		}{
 			{input: "2023-12-25T15:04:05Z", expected: "2023-12-25T15:04:05Z"},
+			{input: "2023-12-25 15:04:05Z", expected: "2023-12-25T15:04:05Z"},
 			{input: "2023-12-25T15:04:05", expected: "2023-12-25T15:04:05Z"},
+			{input: "2023-12-25 15:04:05", expected: "2023-12-25T15:04:05Z"},
 			{input: "2023-12-25T15:04", expected: "2023-12-25T15:04:00Z"},
+			{input: "2023-12-25 15:04", expected: "2023-12-25T15:04:00Z"},
 			{input: "2023-12-25", expected: "2023-12-25T00:00:00Z"},
 			{input: "2023-12-xx", err: errors.New("parsing time \"2023-12-xx\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"xx\" as \"02\"")},
 		}
