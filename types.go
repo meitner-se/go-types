@@ -277,6 +277,7 @@ func (s *Bool) Scan(value interface{}) error {
 	s.isDefined = true
 
 	if s.isNil {
+		s.underlying = false
 		return nil
 	}
 
@@ -479,6 +480,7 @@ func (s *Date) Scan(value interface{}) error {
 	s.isDefined = true
 
 	if s.isNil {
+		s.underlying = time.Time{}
 		return nil
 	}
 
@@ -667,6 +669,7 @@ func (s *Float64) Scan(value interface{}) error {
 	s.isDefined = true
 
 	if s.isNil {
+		s.underlying = 0
 		return nil
 	}
 
@@ -846,6 +849,7 @@ func (s *Int) Scan(value interface{}) error {
 	s.isDefined = true
 
 	if s.isNil {
+		s.underlying = 0
 		return nil
 	}
 
@@ -1025,6 +1029,7 @@ func (s *Int16) Scan(value interface{}) error {
 	s.isDefined = true
 
 	if s.isNil {
+		s.underlying = 0
 		return nil
 	}
 
@@ -1204,6 +1209,7 @@ func (s *Int64) Scan(value interface{}) error {
 	s.isDefined = true
 
 	if s.isNil {
+		s.underlying = 0
 		return nil
 	}
 
@@ -1861,6 +1867,7 @@ func (s *String) Scan(value interface{}) error {
 	s.isDefined = true
 
 	if s.isNil {
+		s.underlying = ""
 		return nil
 	}
 
@@ -2513,6 +2520,7 @@ func (s *UUID) Scan(value interface{}) error {
 	s.isDefined = true
 
 	if s.isNil {
+		s.underlying = uuid.Nil
 		return nil
 	}
 
