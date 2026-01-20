@@ -1294,12 +1294,12 @@ func (s JSON) String() string {
 }
 
 // JSON returns the json.RawMessage value.
-func (s JSON) RawMessage() json.RawMessage {
+func (s JSON) JSON() json.RawMessage {
 	return s.underlying
 }
 
 // JSONPtr returns the json.RawMessage value as a pointer.
-func (s JSON) RawMessagePtr() *json.RawMessage {
+func (s JSON) JSONPtr() *json.RawMessage {
 	if s.IsNil() {
 		return nil
 	}
@@ -1376,37 +1376,6 @@ func (s *JSON) UnmarshalJSON(d []byte) error {
 	}
 
 	return nil
-}
-
-// Scan assigns a value from a database driver and implements the sql Scanner interface.
-//
-// See https://pkg.go.dev/database/sql#Scanner
-func (s *JSON) Scan(value interface{}) error {
-	s.isNil = (nil == value)
-	s.isDefined = true
-
-	if s.isNil {
-		return nil
-	}
-
-	source, ok := value.([]byte)
-	if !ok {
-		return errors.New("incompatible type for json")
-	}
-
-	s.underlying = append((s.underlying)[0:0], source...)
-
-	return nil
-}
-
-// Value implements the driver Valuer interface.
-//
-// See https://pkg.go.dev/database/sql/driver#Valuer
-func (s JSON) Value() (driver.Value, error) {
-	if s.IsNil() {
-		return nil, nil
-	}
-	return []byte(s.underlying), nil
 }
 
 func (s *JSON) Marshal(obj interface{}) error {
