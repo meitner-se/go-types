@@ -12,7 +12,6 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/aarondl/null/v8/convert"
-	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/friendsofgo/errors"
 	"github.com/google/uuid"
 )
@@ -1228,13 +1227,13 @@ func (s Int64) Value() (driver.Value, error) {
 
 // JSON is used to represent JSON data.
 type JSON struct {
-	underlying types.JSON
+	underlying json.RawMessage
 	isDefined  bool
 	isNil      bool
 }
 
 // NewJSON creates a new JSON object.
-func NewJSON(underlying types.JSON) JSON {
+func NewJSON(underlying json.RawMessage) JSON {
 	return JSON{
 		underlying: underlying,
 		isDefined:  true,
@@ -1243,7 +1242,7 @@ func NewJSON(underlying types.JSON) JSON {
 }
 
 // NewJSONFromPtr creates a new JSON object from a pointer.
-func NewJSONFromPtr(underlying *types.JSON) JSON {
+func NewJSONFromPtr(underlying *json.RawMessage) JSON {
 	if underlying != nil {
 		return NewJSON(*underlying)
 	}
@@ -1295,12 +1294,12 @@ func (s JSON) String() string {
 }
 
 // JSON returns the json.RawMessage value.
-func (s JSON) JSON() types.JSON {
+func (s JSON) RawMessage() json.RawMessage {
 	return s.underlying
 }
 
 // JSONPtr returns the json.RawMessage value as a pointer.
-func (s JSON) JSONPtr() *types.JSON {
+func (s JSON) RawMessagePtr() *json.RawMessage {
 	if s.IsNil() {
 		return nil
 	}
