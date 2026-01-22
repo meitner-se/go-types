@@ -511,7 +511,7 @@ func (d Date) DateValue() (pgtype.Date, error) {
 	return pgtype.Date{
 		Time:             d.underlying,
 		InfinityModifier: pgtype.Finite,
-		Valid:            !d.isNil,
+		Valid:            !d.IsNil(),
 	}, nil
 }
 
@@ -2381,7 +2381,7 @@ func (ts Timestamp) TimestampValue() (pgtype.Timestamp, error) {
 	return pgtype.Timestamp{
 		Time:             ts.underlying,
 		InfinityModifier: pgtype.Finite,
-		Valid:            !ts.isNil,
+		Valid:            !ts.IsNil(),
 	}, nil
 }
 
