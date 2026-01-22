@@ -14,6 +14,7 @@ import (
 	"github.com/aarondl/null/v8/convert"
 	"github.com/friendsofgo/errors"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var (
@@ -2503,6 +2504,37 @@ func (s UUID) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return s.underlying.String(), nil
+}
+
+// ScanUUID implements pgtype.UUIDScanner
+func (s *UUID) ScanUUID(v pgtype.UUID) error {
+	s.isDefined = true
+
+	if !v.Valid {
+		s.isNil = true
+		s.underlying = uuid.Nil
+		return nil
+	}
+
+	s.isNil = false
+	// uuid.UUID is [16]byte under the hood, same as pgtype.UUID.Bytes
+	s.underlying = uuid.UUID(v.Bytes)
+	return nil
+}
+
+// UUIDValue implements pgtype.UUIDValuer
+func (s UUID) UUIDValue() (pgtype.UUID, error) {
+	if s.IsNil() {
+		return pgtype.UUID{
+			Bytes: [16]byte{},
+			Valid: false,
+		}, nil
+	}
+
+	return pgtype.UUID{
+		Bytes: [16]byte(s.underlying),
+		Valid: true,
+	}, nil
 }
 
 func underlyingTime(t time.Time, format string) time.Time {
