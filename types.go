@@ -2073,10 +2073,17 @@ func (s *Time) ScanTime(v pgtype.Time) error {
 	}
 
 	// pgtype.Time is microseconds since midnight (in pgx v5).
-	// Convert to a stable time.Time anchored to a fixed date in UTC.
+	// Convert to a stable time.Time anchored to year 0 (0000-01-01) in UTC,
+	// matching the anchor date used by time.Parse when no date is specified.
 	us := v.Microseconds
-	t := time.Unix(0, us*1000).UTC() // 1970-01-01 + time-of-day
-	s.underlying = t
+	hours := us / (3600 * 1_000_000)
+	us %= 3600 * 1_000_000
+	minutes := us / (60 * 1_000_000)
+	us %= 60 * 1_000_000
+	seconds := us / 1_000_000
+	micros := us % 1_000_000
+
+	s.underlying = time.Date(0, 1, 1, int(hours), int(minutes), int(seconds), int(micros*1000), time.UTC)
 
 	return nil
 }
