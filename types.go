@@ -12,9 +12,9 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/aarondl/null/v8/convert"
-	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/friendsofgo/errors"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var (
@@ -1228,13 +1228,13 @@ func (s Int64) Value() (driver.Value, error) {
 
 // JSON is used to represent JSON data.
 type JSON struct {
-	underlying types.JSON
+	underlying json.RawMessage
 	isDefined  bool
 	isNil      bool
 }
 
 // NewJSON creates a new JSON object.
-func NewJSON(underlying types.JSON) JSON {
+func NewJSON(underlying json.RawMessage) JSON {
 	return JSON{
 		underlying: underlying,
 		isDefined:  true,
@@ -1243,7 +1243,7 @@ func NewJSON(underlying types.JSON) JSON {
 }
 
 // NewJSONFromPtr creates a new JSON object from a pointer.
-func NewJSONFromPtr(underlying *types.JSON) JSON {
+func NewJSONFromPtr(underlying *json.RawMessage) JSON {
 	if underlying != nil {
 		return NewJSON(*underlying)
 	}
@@ -1295,12 +1295,12 @@ func (s JSON) String() string {
 }
 
 // JSON returns the json.RawMessage value.
-func (s JSON) JSON() types.JSON {
+func (s JSON) JSON() json.RawMessage {
 	return s.underlying
 }
 
 // JSONPtr returns the json.RawMessage value as a pointer.
-func (s JSON) JSONPtr() *types.JSON {
+func (s JSON) JSONPtr() *json.RawMessage {
 	if s.IsNil() {
 		return nil
 	}
@@ -1377,37 +1377,6 @@ func (s *JSON) UnmarshalJSON(d []byte) error {
 	}
 
 	return nil
-}
-
-// Scan assigns a value from a database driver and implements the sql Scanner interface.
-//
-// See https://pkg.go.dev/database/sql#Scanner
-func (s *JSON) Scan(value interface{}) error {
-	s.isNil = (nil == value)
-	s.isDefined = true
-
-	if s.isNil {
-		return nil
-	}
-
-	source, ok := value.([]byte)
-	if !ok {
-		return errors.New("incompatible type for json")
-	}
-
-	s.underlying = append((s.underlying)[0:0], source...)
-
-	return nil
-}
-
-// Value implements the driver Valuer interface.
-//
-// See https://pkg.go.dev/database/sql/driver#Valuer
-func (s JSON) Value() (driver.Value, error) {
-	if s.IsNil() {
-		return nil, nil
-	}
-	return []byte(s.underlying), nil
 }
 
 func (s *JSON) Marshal(obj interface{}) error {
@@ -2535,6 +2504,37 @@ func (s UUID) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return s.underlying.String(), nil
+}
+
+// ScanUUID implements pgtype.UUIDScanner
+func (s *UUID) ScanUUID(v pgtype.UUID) error {
+	s.isDefined = true
+
+	if !v.Valid {
+		s.isNil = true
+		s.underlying = uuid.Nil
+		return nil
+	}
+
+	s.isNil = false
+	// uuid.UUID is [16]byte under the hood, same as pgtype.UUID.Bytes
+	s.underlying = uuid.UUID(v.Bytes)
+	return nil
+}
+
+// UUIDValue implements pgtype.UUIDValuer
+func (s UUID) UUIDValue() (pgtype.UUID, error) {
+	if s.IsNil() {
+		return pgtype.UUID{
+			Bytes: [16]byte{},
+			Valid: false,
+		}, nil
+	}
+
+	return pgtype.UUID{
+		Bytes: [16]byte(s.underlying),
+		Valid: true,
+	}, nil
 }
 
 func underlyingTime(t time.Time, format string) time.Time {
