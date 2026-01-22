@@ -2092,7 +2092,8 @@ func (s Time) TimeValue() (pgtype.Time, error) {
 
 	// Extract time-of-day from your underlying time.Time
 	h, m, sec := s.underlying.Clock()
-	us := int64(((h*60+m)*60 + sec) * 1_000_000)
+	ns := s.underlying.Nanosecond()
+	us := int64(((h*60+m)*60+sec)*1_000_000) + int64(ns/1000)
 
 	return pgtype.Time{
 		Microseconds: us,
