@@ -497,6 +497,24 @@ func (s Date) Value() (driver.Value, error) {
 	return s.underlying, nil
 }
 
+// ScanDate implements the [pgtype.DateScanner] interface.
+func (d *Date) ScanDate(v pgtype.Date) error {
+	d.isNil = !v.Valid
+	d.isDefined = true
+	d.underlying = v.Time
+
+	return nil
+}
+
+// DateValue implements the [pgtype.DateValuer] interface.
+func (d Date) DateValue() (pgtype.Date, error) {
+	return pgtype.Date{
+		Time:             d.underlying,
+		InfinityModifier: pgtype.Finite,
+		Valid:            !d.isNil,
+	}, nil
+}
+
 // Float64 is used to represent 64-bit floating point numbers.
 type Float64 struct {
 	underlying float64
@@ -2044,6 +2062,44 @@ func (s Time) Value() (driver.Value, error) {
 	return s.underlying, nil
 }
 
+// Scan time-of-day from Postgres
+func (s *Time) ScanTime(v pgtype.Time) error {
+	s.isNil = !v.Valid
+	s.isDefined = true
+
+	if s.isNil {
+		s.underlying = time.Time{}
+		return nil
+	}
+
+	// pgtype.Time is microseconds since midnight (in pgx v5).
+	// Convert to a stable time.Time anchored to a fixed date in UTC.
+	us := v.Microseconds
+	t := time.Unix(0, us*1000).UTC() // 1970-01-01 + time-of-day
+	s.underlying = t
+
+	return nil
+}
+
+// Encode time-of-day to Postgres
+func (s Time) TimeValue() (pgtype.Time, error) {
+	if s.IsNil() {
+		return pgtype.Time{
+			Microseconds: 0,
+			Valid:        false,
+		}, nil
+	}
+
+	// Extract time-of-day from your underlying time.Time
+	h, m, sec := s.underlying.Clock()
+	us := int64(((h*60+m)*60 + sec) * 1_000_000)
+
+	return pgtype.Time{
+		Microseconds: us,
+		Valid:        true,
+	}, nil
+}
+
 // Timestamp is used to represent a timestamps according to the RFC3339 format.
 type Timestamp struct {
 	underlying time.Time
@@ -2301,6 +2357,24 @@ func (s Timestamp) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return s.underlying, nil
+}
+
+// ScanTimestamp implements the [pgtype.TimestampScanner] interface.
+func (ts *Timestamp) ScanTimestamp(v pgtype.Timestamp) error {
+	ts.isNil = !v.Valid
+	ts.isDefined = true
+	ts.underlying = v.Time
+
+	return nil
+}
+
+// TimestampValue implements the [pgtype.TimestampValuer] interface.
+func (ts Timestamp) TimestampValue() (pgtype.Timestamp, error) {
+	return pgtype.Timestamp{
+		Time:             ts.underlying,
+		InfinityModifier: pgtype.Finite,
+		Valid:            !ts.isNil,
+	}, nil
 }
 
 // UUID is used to represent a UUID.
