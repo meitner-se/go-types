@@ -1409,6 +1409,40 @@ func (s *JSON) Marshal(obj interface{}) error {
 	return nil
 }
 
+// Scan assigns a value from a database driver and implements the sql Scanner interface.
+//
+// See https://pkg.go.dev/database/sql#Scanner
+func (s *JSON) Scan(value interface{}) error {
+	s.isNil = (nil == value)
+	s.isDefined = true
+
+	if s.isNil {
+		s.underlying = nil
+		return nil
+	}
+
+	switch v := value.(type) {
+	case []byte:
+		s.underlying = append(json.RawMessage(nil), v...)
+	case string:
+		s.underlying = json.RawMessage(append([]byte(nil), v...))
+	default:
+		return fmt.Errorf("types.JSON: cannot scan %T", value)
+	}
+
+	return nil
+}
+
+// Value implements the driver Valuer interface.
+//
+// See https://pkg.go.dev/database/sql/driver#Valuer
+func (s JSON) Value() (driver.Value, error) {
+	if s.IsNil() {
+		return nil, nil
+	}
+	return []byte(s.underlying), nil
+}
+
 // RichText is used to represent rich text.
 type RichText struct {
 	underlying string
