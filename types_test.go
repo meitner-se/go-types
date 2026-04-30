@@ -11,6 +11,70 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestJSON_Scan(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		var output JSON
+
+		err := output.Scan(nil)
+
+		require.NoError(t, err)
+		assert.True(t, output.IsDefined())
+		assert.True(t, output.IsNil())
+		assert.Nil(t, output.JSON())
+	})
+
+	t.Run("bytes", func(t *testing.T) {
+		input := []byte(`{"a":1}`)
+		var output JSON
+
+		err := output.Scan(input)
+
+		require.NoError(t, err)
+		assert.True(t, output.IsDefined())
+		assert.False(t, output.IsNil())
+		assert.Equal(t, json.RawMessage(`{"a":1}`), output.JSON())
+
+		input[0] = '['
+		assert.Equal(t, json.RawMessage(`{"a":1}`), output.JSON())
+	})
+
+	t.Run("string", func(t *testing.T) {
+		var output JSON
+
+		err := output.Scan(`{"a":1}`)
+
+		require.NoError(t, err)
+		assert.True(t, output.IsDefined())
+		assert.False(t, output.IsNil())
+		assert.Equal(t, json.RawMessage(`{"a":1}`), output.JSON())
+	})
+
+	t.Run("unsupported", func(t *testing.T) {
+		var output JSON
+
+		err := output.Scan(42)
+
+		require.Error(t, err)
+		assert.EqualError(t, err, "types.JSON: cannot scan int")
+	})
+}
+
+func TestJSON_Value(t *testing.T) {
+	t.Run("nil", func(t *testing.T) {
+		output, err := NewJSONFromPtr(nil).Value()
+
+		require.NoError(t, err)
+		assert.Nil(t, output)
+	})
+
+	t.Run("defined", func(t *testing.T) {
+		output, err := NewJSON(json.RawMessage(`{"a":1}`)).Value()
+
+		require.NoError(t, err)
+		assert.Equal(t, []byte(`{"a":1}`), output)
+	})
+}
+
 //nolint:lll
 func TestRichText(t *testing.T) {
 	t.Run("Unmarshal", func(t *testing.T) {
