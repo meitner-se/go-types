@@ -11,6 +11,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   release-tag:
     runs-on: ubuntu-24.04
@@ -19,7 +22,7 @@ jobs:
       GH_DEBUG: api
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Fetch all history
           filter: tree:0  # "Treeless clones" filter
