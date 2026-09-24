@@ -103,6 +103,11 @@ func TestRichText(t *testing.T) {
 				content:  "<ul><li>ett</li><li>två</li></ul><ol><li><p>tre</p></li><li><p>fyra</p></li></ol>",
 				expected: "ett\ntvå\n\ntre\n\nfyra",
 			},
+			{
+				// Text after a block inside an item still needs its own separator.
+				content:  "<ul><li><p>ett</p>svans</li><li>två</li></ul>",
+				expected: "ett\n\nsvans\ntvå",
+			},
 		}
 
 		for _, tc := range tt {

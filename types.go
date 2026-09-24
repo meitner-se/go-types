@@ -1647,10 +1647,19 @@ func (s RichText) Text() (string, error) {
 	return strings.TrimSuffix(b.String(), "\n\n"), nil
 }
 
-// endsWithBlock reports whether the node's last element child is one of the
-// block elements Text separates with a blank line.
+// endsWithBlock reports whether the node's content ends with one of the block
+// elements Text separates with a blank line. Whitespace-only text after the
+// block does not count; any other text does, since it needs its own separator.
 func endsWithBlock(n *html.Node) bool {
 	for c := n.LastChild; c != nil; c = c.PrevSibling {
+		if c.Type == html.TextNode {
+			if strings.TrimSpace(c.Data) == "" {
+				continue
+			}
+
+			return false
+		}
+
 		if c.Type != html.ElementNode {
 			continue
 		}
