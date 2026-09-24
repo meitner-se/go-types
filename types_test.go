@@ -93,6 +93,16 @@ func TestRichText(t *testing.T) {
 				content:  "<p>hej</p><p>på dig</p><p></p>",
 				expected: "hej\n\npå dig",
 			},
+			{
+				// A hard line break (Shift+Enter in the editor) keeps its line.
+				content:  "<p>rad ett<br>rad två</p>",
+				expected: "rad ett\nrad två",
+			},
+			{
+				// Bare list items get a line each; wrapped ones keep the blank line.
+				content:  "<ul><li>ett</li><li>två</li></ul><ol><li><p>tre</p></li><li><p>fyra</p></li></ol>",
+				expected: "ett\ntvå\n\ntre\n\nfyra",
+			},
 		}
 
 		for _, tc := range tt {
