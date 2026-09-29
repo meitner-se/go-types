@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"database/sql/driver"
+	"encoding"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -471,6 +472,46 @@ func (s *Date) UnmarshalJSON(d []byte) error {
 
 	return nil
 }
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+// An empty value is treated as undefined (the same as an absent query param).
+func (s *Date) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		*s = Date{}
+		return nil
+	}
+
+	parsed, err := time.Parse("2006-01-02", string(text))
+	if err != nil {
+		return err
+	}
+
+	s.underlying = parsed
+	s.isDefined = true
+	s.isNil = false
+	return nil
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s Date) MarshalText() ([]byte, error) {
+	if s.IsNil() {
+		return []byte{}, nil
+	}
+	return []byte(s.underlying.Format("2006-01-02")), nil
+}
+
+// UnmarshalParam implements gin's binding.BindUnmarshaler (gin v1.12.0).
+// gin's default query-binding path for struct-kind fields calls this before
+// falling back to json.Unmarshal of the raw value; encoding.TextUnmarshaler
+// is only consulted when the form tag sets parser=encoding.TextUnmarshaler.
+func (s *Date) UnmarshalParam(param string) error {
+	return s.UnmarshalText([]byte(param))
+}
+
+var (
+	_ encoding.TextUnmarshaler = (*Date)(nil)
+	_ encoding.TextMarshaler   = Date{}
+)
 
 // Scan assigns a value from a database driver and implements the sql Scanner interface.
 //
@@ -2376,6 +2417,47 @@ func (s *Timestamp) UnmarshalJSON(d []byte) error {
 
 	return nil
 }
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+// Accepts RFC3339 and RFC3339Nano. An empty value is treated as undefined
+// (the same as an absent query param).
+func (s *Timestamp) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		*s = Timestamp{}
+		return nil
+	}
+
+	parsed, err := time.Parse(time.RFC3339Nano, string(text))
+	if err != nil {
+		return err
+	}
+
+	s.underlying = parsed
+	s.isDefined = true
+	s.isNil = false
+	return nil
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s Timestamp) MarshalText() ([]byte, error) {
+	if s.IsNil() {
+		return []byte{}, nil
+	}
+	return []byte(s.underlying.Format(time.RFC3339)), nil
+}
+
+// UnmarshalParam implements gin's binding.BindUnmarshaler (gin v1.12.0).
+// gin's default query-binding path for struct-kind fields calls this before
+// falling back to json.Unmarshal of the raw value; encoding.TextUnmarshaler
+// is only consulted when the form tag sets parser=encoding.TextUnmarshaler.
+func (s *Timestamp) UnmarshalParam(param string) error {
+	return s.UnmarshalText([]byte(param))
+}
+
+var (
+	_ encoding.TextUnmarshaler = (*Timestamp)(nil)
+	_ encoding.TextMarshaler   = Timestamp{}
+)
 
 // Scan assigns a value from a database driver and implements the sql Scanner interface.
 //

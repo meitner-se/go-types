@@ -27,3 +27,13 @@ jobs:
 
       - name: Run tests
         run: go test -v ./...
+
+      - name: Setup Go for gin binding tests
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache: true
+          cache-dependency-path: gintest/go.sum
+
+      - name: Run gin binding tests
+        run: go test -C gintest -v ./...
