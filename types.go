@@ -1661,6 +1661,19 @@ func (s RichText) Text() (string, error) {
 						return err
 					}
 				}
+			case "br":
+				// A hard line break inside a block: one newline, no blank line.
+				if _, err := b.WriteString("\n"); err != nil {
+					return err
+				}
+			case "li":
+				// A list item wrapping a block child (<li><p>…</p></li>) already
+				// got its newlines from that child; a bare item needs its own.
+				if n.NextSibling != nil && !endsWithBlock(n) {
+					if _, err := b.WriteString("\n"); err != nil {
+						return err
+					}
+				}
 			}
 		}
 
@@ -1673,6 +1686,34 @@ func (s RichText) Text() (string, error) {
 	}
 
 	return strings.TrimSuffix(b.String(), "\n\n"), nil
+}
+
+// endsWithBlock reports whether the node's content ends with one of the block
+// elements Text separates with a blank line. Whitespace-only text after the
+// block does not count; any other text does, since it needs its own separator.
+func endsWithBlock(n *html.Node) bool {
+	for c := n.LastChild; c != nil; c = c.PrevSibling {
+		if c.Type == html.TextNode {
+			if strings.TrimSpace(c.Data) == "" {
+				continue
+			}
+
+			return false
+		}
+
+		if c.Type != html.ElementNode {
+			continue
+		}
+
+		switch c.Data {
+		case "p", "h1", "h2", "h3", "pre", "ul", "ol":
+			return true
+		default:
+			return false
+		}
+	}
+
+	return false
 }
 
 // MarshalJSON implements the json Marshaler interface.
