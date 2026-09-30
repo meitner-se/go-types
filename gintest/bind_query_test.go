@@ -26,6 +26,11 @@ type dateQuery struct {
 	On types.Date `form:"on"`
 }
 
+// uuidQuery is the publicapis-shaped query struct from INF-9831.
+type uuidQuery struct {
+	SchoolID types.UUID `form:"schoolID"`
+}
+
 func bindQuery(t *testing.T, rawQuery string, dest any) error {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -158,6 +163,61 @@ func TestDateShouldBindQuery(t *testing.T) {
 	})
 }
 
+// TestUUIDShouldBindQueryBareCanonical is the INF-9831 reproduction:
+// publicapis calls gin's ShouldBindQuery on a struct field of type types.UUID.
+// Partners send a bare hyphenated UUID (?schoolID=550e8400-e29b-41d4-a716-446655440000),
+// not a JSON-quoted string.
+func TestUUIDShouldBindQueryBareCanonical(t *testing.T) {
+	const raw = "550e8400-e29b-41d4-a716-446655440000"
+	want := uuid.MustParse(raw)
+
+	var q uuidQuery
+	err := bindQuery(t, "schoolID="+raw, &q)
+	require.NoError(t, err, "gin %s ShouldBindQuery of bare UUID into types.UUID", gin.Version)
+	assert.True(t, q.SchoolID.IsDefined())
+	assert.False(t, q.SchoolID.IsNil())
+	assert.Equal(t, want, q.SchoolID.UUID())
+}
+
+func TestUUIDShouldBindQueryEmptyAndAbsent(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		var q uuidQuery
+		err := bindQuery(t, "schoolID=", &q)
+		require.NoError(t, err)
+		assert.False(t, q.SchoolID.IsDefined())
+		assert.True(t, q.SchoolID.IsNil())
+	})
+
+	t.Run("absent", func(t *testing.T) {
+		var q uuidQuery
+		err := bindQuery(t, "", &q)
+		require.NoError(t, err)
+		assert.False(t, q.SchoolID.IsDefined())
+		assert.True(t, q.SchoolID.IsNil())
+	})
+}
+
+func TestUUIDShouldBindQueryMalformed(t *testing.T) {
+	var q uuidQuery
+	err := bindQuery(t, "schoolID=not-a-uuid", &q)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid UUID")
+}
+
+func TestUUIDQueryFlagParityWithJSON(t *testing.T) {
+	const raw = "550e8400-e29b-41d4-a716-446655440000"
+
+	var fromJSON types.UUID
+	require.NoError(t, json.Unmarshal([]byte(`"`+raw+`"`), &fromJSON))
+
+	var fromQuery uuidQuery
+	require.NoError(t, bindQuery(t, "schoolID="+raw, &fromQuery))
+
+	assert.Equal(t, fromJSON.IsDefined(), fromQuery.SchoolID.IsDefined())
+	assert.Equal(t, fromJSON.IsNil(), fromQuery.SchoolID.IsNil())
+	assert.Equal(t, fromJSON.UUID(), fromQuery.SchoolID.UUID())
+}
+
 // TestGinV1120StructKindBindingPath records which interfaces gin v1.12.0
 // actually consults for struct-kind fields. This decides the production
 // implementation: TextUnmarshaler is only used when the form tag names
@@ -266,9 +326,9 @@ func TestQueryParamTypesAudit(t *testing.T) {
 			ID types.UUID `form:"id"`
 		}
 		err := bindQuery(t, "id="+id.String(), &q)
-		// A bare UUID is not valid JSON, so gin's struct-kind fallback fails.
-		// Recorded here as an audit; not in scope for INF-9812.
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid character")
+		require.NoError(t, err)
+		assert.True(t, q.ID.IsDefined())
+		assert.False(t, q.ID.IsNil())
+		assert.Equal(t, id, q.ID.UUID())
 	})
 }

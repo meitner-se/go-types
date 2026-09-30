@@ -175,3 +175,110 @@ func TestDateMarshalText(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, empty)
 }
+
+func TestUUIDUnmarshalText(t *testing.T) {
+	const canonical = "550e8400-e29b-41d4-a716-446655440000"
+
+	t.Run("canonical", func(t *testing.T) {
+		var u UUID
+		require.NoError(t, u.UnmarshalText([]byte(canonical)))
+		assert.True(t, u.IsDefined())
+		assert.False(t, u.IsNil())
+		assert.Equal(t, canonical, u.String())
+	})
+
+	t.Run("uppercase", func(t *testing.T) {
+		var u UUID
+		require.NoError(t, u.UnmarshalText([]byte("550E8400-E29B-41D4-A716-446655440000")))
+		assert.True(t, u.IsDefined())
+		assert.False(t, u.IsNil())
+		assert.Equal(t, canonical, u.String())
+	})
+
+	t.Run("unhyphenated", func(t *testing.T) {
+		var u UUID
+		require.NoError(t, u.UnmarshalText([]byte("550e8400e29b41d4a716446655440000")))
+		assert.True(t, u.IsDefined())
+		assert.False(t, u.IsNil())
+		assert.Equal(t, canonical, u.String())
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		var u UUID
+		require.NoError(t, u.UnmarshalText([]byte{}))
+		assert.False(t, u.IsDefined())
+		assert.True(t, u.IsNil())
+	})
+
+	t.Run("malformed", func(t *testing.T) {
+		var u UUID
+		err := u.UnmarshalText([]byte("not-a-uuid"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid UUID")
+		assert.False(t, u.IsDefined(), "invalid input must not look defined")
+		assert.True(t, u.IsNil())
+	})
+
+	t.Run("wrong length", func(t *testing.T) {
+		var u UUID
+		err := u.UnmarshalText([]byte("550e8400-e29b-41d4-a716-44665544000"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid UUID")
+		assert.False(t, u.IsDefined())
+		assert.True(t, u.IsNil())
+	})
+}
+
+func TestUUIDUnmarshalTextFlagParityWithJSON(t *testing.T) {
+	const raw = "550e8400-e29b-41d4-a716-446655440000"
+
+	var fromJSON UUID
+	require.NoError(t, json.Unmarshal([]byte(`"`+raw+`"`), &fromJSON))
+
+	var fromText UUID
+	require.NoError(t, fromText.UnmarshalText([]byte(raw)))
+
+	assert.Equal(t, fromJSON.IsDefined(), fromText.IsDefined())
+	assert.Equal(t, fromJSON.IsNil(), fromText.IsNil())
+	assert.Equal(t, fromJSON.UUID(), fromText.UUID())
+
+	var omitted UUID // JSON-omitted field stays at the zero value
+	var emptyText UUID
+	require.NoError(t, emptyText.UnmarshalText(nil))
+	assert.Equal(t, omitted.IsDefined(), emptyText.IsDefined())
+	assert.Equal(t, omitted.IsNil(), emptyText.IsNil())
+}
+
+func TestUUIDUnmarshalParam(t *testing.T) {
+	const raw = "550e8400-e29b-41d4-a716-446655440000"
+	var u UUID
+	require.NoError(t, u.UnmarshalParam(raw))
+	assert.True(t, u.IsDefined())
+	assert.False(t, u.IsNil())
+	assert.Equal(t, raw, u.String())
+
+	require.NoError(t, u.UnmarshalParam(""))
+	assert.False(t, u.IsDefined())
+	assert.True(t, u.IsNil())
+
+	err := u.UnmarshalParam("not-a-uuid")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid UUID")
+}
+
+func TestUUIDMarshalText(t *testing.T) {
+	u, err := UUIDFromString("550e8400-e29b-41d4-a716-446655440000")
+	require.NoError(t, err)
+
+	text, err := u.MarshalText()
+	require.NoError(t, err)
+	assert.Equal(t, "550e8400-e29b-41d4-a716-446655440000", string(text))
+
+	var roundtrip UUID
+	require.NoError(t, roundtrip.UnmarshalText(text))
+	assert.Equal(t, u.UUID(), roundtrip.UUID())
+
+	empty, err := NewUUIDUndefined().MarshalText()
+	require.NoError(t, err)
+	assert.Empty(t, empty)
+}
