@@ -2720,6 +2720,48 @@ func (s *UUID) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
+// UnmarshalText implements encoding.TextUnmarshaler.
+// Accepts the same forms as uuid.Parse (canonical hyphenated and
+// unhyphenated 32-char hex), matching Scan. An empty value is treated
+// as undefined (the same as an absent query param).
+func (s *UUID) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		*s = UUID{}
+		return nil
+	}
+
+	parsed, err := uuid.Parse(string(text))
+	if err != nil {
+		return err
+	}
+
+	s.underlying = parsed
+	s.isDefined = true
+	s.isNil = false
+	return nil
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UUID) MarshalText() ([]byte, error) {
+	if s.IsNil() {
+		return []byte{}, nil
+	}
+	return []byte(s.underlying.String()), nil
+}
+
+// UnmarshalParam implements gin's binding.BindUnmarshaler (gin v1.12.0).
+// gin's default query-binding path for struct-kind fields calls this before
+// falling back to json.Unmarshal of the raw value; encoding.TextUnmarshaler
+// is only consulted when the form tag sets parser=encoding.TextUnmarshaler.
+func (s *UUID) UnmarshalParam(param string) error {
+	return s.UnmarshalText([]byte(param))
+}
+
+var (
+	_ encoding.TextUnmarshaler = (*UUID)(nil)
+	_ encoding.TextMarshaler   = UUID{}
+)
+
 // Scan assigns a value from a database driver and implements the sql Scanner interface.
 //
 // See https://pkg.go.dev/database/sql#Scanner
