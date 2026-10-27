@@ -1962,6 +1962,42 @@ func (s *String) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
+// UnmarshalText implements encoding.TextUnmarshaler.
+// An empty value is treated as undefined (the same as an absent query param).
+// Non-empty values are trimmed to match UnmarshalJSON.
+func (s *String) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		*s = String{}
+		return nil
+	}
+
+	s.underlying = strings.TrimSpace(string(text))
+	s.isDefined = true
+	s.isNil = false
+	return nil
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s String) MarshalText() ([]byte, error) {
+	if s.IsNil() {
+		return []byte{}, nil
+	}
+	return []byte(s.underlying), nil
+}
+
+// UnmarshalParam implements gin's binding.BindUnmarshaler (gin v1.12.0).
+// gin's default query-binding path for struct-kind fields calls this before
+// falling back to json.Unmarshal of the raw value; encoding.TextUnmarshaler
+// is only consulted when the form tag sets parser=encoding.TextUnmarshaler.
+func (s *String) UnmarshalParam(param string) error {
+	return s.UnmarshalText([]byte(param))
+}
+
+var (
+	_ encoding.TextUnmarshaler = (*String)(nil)
+	_ encoding.TextMarshaler   = String{}
+)
+
 // Scan assigns a value from a database driver and implements the sql Scanner interface.
 //
 // See https://pkg.go.dev/database/sql#Scanner
