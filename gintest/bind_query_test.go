@@ -31,6 +31,12 @@ type uuidQuery struct {
 	SchoolID types.UUID `form:"schoolID"`
 }
 
+// stringQuery is the DataExport-shaped query struct from INF-10507.
+type stringQuery struct {
+	ArchiveYear types.String `form:"archiveYear"`
+	ArchiveTerm types.String `form:"archiveTerm"`
+}
+
 func bindQuery(t *testing.T, rawQuery string, dest any) error {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -218,6 +224,65 @@ func TestUUIDQueryFlagParityWithJSON(t *testing.T) {
 	assert.Equal(t, fromJSON.UUID(), fromQuery.SchoolID.UUID())
 }
 
+// TestStringShouldBindQueryBareValue is the INF-10507 reproduction:
+// publicapis calls gin's ShouldBindQuery on a struct field of type types.String.
+// Partners send a bare value (?archiveYear=2024_2025), not a JSON-quoted string.
+func TestStringShouldBindQueryBareValue(t *testing.T) {
+	t.Run("archiveYear", func(t *testing.T) {
+		const raw = "2024_2025"
+		var q stringQuery
+		err := bindQuery(t, "archiveYear="+raw, &q)
+		require.NoError(t, err, "gin %s ShouldBindQuery of bare string into types.String", gin.Version)
+		assert.True(t, q.ArchiveYear.IsDefined())
+		assert.False(t, q.ArchiveYear.IsNil())
+		assert.Equal(t, raw, q.ArchiveYear.String())
+	})
+
+	t.Run("archiveTerm", func(t *testing.T) {
+		const raw = "HT"
+		var q stringQuery
+		err := bindQuery(t, "archiveTerm="+raw, &q)
+		require.NoError(t, err)
+		assert.True(t, q.ArchiveTerm.IsDefined())
+		assert.False(t, q.ArchiveTerm.IsNil())
+		assert.Equal(t, raw, q.ArchiveTerm.String())
+	})
+}
+
+func TestStringShouldBindQueryEmptyAndAbsent(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		var q stringQuery
+		err := bindQuery(t, "archiveYear=", &q)
+		require.NoError(t, err)
+		assert.False(t, q.ArchiveYear.IsDefined())
+		assert.True(t, q.ArchiveYear.IsNil())
+	})
+
+	t.Run("absent", func(t *testing.T) {
+		var q stringQuery
+		err := bindQuery(t, "", &q)
+		require.NoError(t, err)
+		assert.False(t, q.ArchiveYear.IsDefined())
+		assert.True(t, q.ArchiveYear.IsNil())
+		assert.False(t, q.ArchiveTerm.IsDefined())
+		assert.True(t, q.ArchiveTerm.IsNil())
+	})
+}
+
+func TestStringQueryFlagParityWithJSON(t *testing.T) {
+	const raw = "2024_2025"
+
+	var fromJSON types.String
+	require.NoError(t, json.Unmarshal([]byte(`"`+raw+`"`), &fromJSON))
+
+	var fromQuery stringQuery
+	require.NoError(t, bindQuery(t, "archiveYear="+raw, &fromQuery))
+
+	assert.Equal(t, fromJSON.IsDefined(), fromQuery.ArchiveYear.IsDefined())
+	assert.Equal(t, fromJSON.IsNil(), fromQuery.ArchiveYear.IsNil())
+	assert.Equal(t, fromJSON.String(), fromQuery.ArchiveYear.String())
+}
+
 // TestGinV1120StructKindBindingPath records which interfaces gin v1.12.0
 // actually consults for struct-kind fields. This decides the production
 // implementation: TextUnmarshaler is only used when the form tag names
@@ -330,5 +395,16 @@ func TestQueryParamTypesAudit(t *testing.T) {
 		assert.True(t, q.ID.IsDefined())
 		assert.False(t, q.ID.IsNil())
 		assert.Equal(t, id, q.ID.UUID())
+	})
+
+	t.Run("String archiveYear=2024_2025", func(t *testing.T) {
+		var q struct {
+			ArchiveYear types.String `form:"archiveYear"`
+		}
+		err := bindQuery(t, "archiveYear=2024_2025", &q)
+		require.NoError(t, err)
+		assert.True(t, q.ArchiveYear.IsDefined())
+		assert.False(t, q.ArchiveYear.IsNil())
+		assert.Equal(t, "2024_2025", q.ArchiveYear.String())
 	})
 }

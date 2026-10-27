@@ -282,3 +282,89 @@ func TestUUIDMarshalText(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, empty)
 }
+
+func TestStringUnmarshalText(t *testing.T) {
+	t.Run("archive year", func(t *testing.T) {
+		var s String
+		require.NoError(t, s.UnmarshalText([]byte("2024_2025")))
+		assert.True(t, s.IsDefined())
+		assert.False(t, s.IsNil())
+		assert.Equal(t, "2024_2025", s.String())
+	})
+
+	t.Run("archive term", func(t *testing.T) {
+		var s String
+		require.NoError(t, s.UnmarshalText([]byte("HT")))
+		assert.True(t, s.IsDefined())
+		assert.False(t, s.IsNil())
+		assert.Equal(t, "HT", s.String())
+	})
+
+	t.Run("trims space", func(t *testing.T) {
+		var s String
+		require.NoError(t, s.UnmarshalText([]byte("  2024_2025  ")))
+		assert.True(t, s.IsDefined())
+		assert.False(t, s.IsNil())
+		assert.Equal(t, "2024_2025", s.String())
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		var s String
+		require.NoError(t, s.UnmarshalText([]byte{}))
+		assert.False(t, s.IsDefined())
+		assert.True(t, s.IsNil())
+	})
+}
+
+func TestStringUnmarshalTextFlagParityWithJSON(t *testing.T) {
+	const raw = "2024_2025"
+
+	var fromJSON String
+	require.NoError(t, json.Unmarshal([]byte(`"`+raw+`"`), &fromJSON))
+
+	var fromText String
+	require.NoError(t, fromText.UnmarshalText([]byte(raw)))
+
+	assert.Equal(t, fromJSON.IsDefined(), fromText.IsDefined())
+	assert.Equal(t, fromJSON.IsNil(), fromText.IsNil())
+	assert.Equal(t, fromJSON.String(), fromText.String())
+
+	var omitted String // JSON-omitted field stays at the zero value
+	var emptyText String
+	require.NoError(t, emptyText.UnmarshalText(nil))
+	assert.Equal(t, omitted.IsDefined(), emptyText.IsDefined())
+	assert.Equal(t, omitted.IsNil(), emptyText.IsNil())
+}
+
+func TestStringUnmarshalParam(t *testing.T) {
+	const raw = "2024_2025"
+	var s String
+	require.NoError(t, s.UnmarshalParam(raw))
+	assert.True(t, s.IsDefined())
+	assert.False(t, s.IsNil())
+	assert.Equal(t, raw, s.String())
+
+	require.NoError(t, s.UnmarshalParam("HT"))
+	assert.True(t, s.IsDefined())
+	assert.False(t, s.IsNil())
+	assert.Equal(t, "HT", s.String())
+
+	require.NoError(t, s.UnmarshalParam(""))
+	assert.False(t, s.IsDefined())
+	assert.True(t, s.IsNil())
+}
+
+func TestStringMarshalText(t *testing.T) {
+	s := NewString("2024_2025")
+	text, err := s.MarshalText()
+	require.NoError(t, err)
+	assert.Equal(t, "2024_2025", string(text))
+
+	var roundtrip String
+	require.NoError(t, roundtrip.UnmarshalText(text))
+	assert.Equal(t, s.String(), roundtrip.String())
+
+	empty, err := NewStringUndefined().MarshalText()
+	require.NoError(t, err)
+	assert.Empty(t, empty)
+}
